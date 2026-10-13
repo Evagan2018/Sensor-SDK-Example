@@ -36,7 +36,7 @@ layer:
 
   packs:
     - pack: ARM::Cortex_DFP
-    - pack: ARM::CMSIS@>=6.1.0
+    - pack: ARM::CMSIS@6.4.0
     - pack: ARM::CMSIS-Compiler@>=2.1.0
 
   components:
