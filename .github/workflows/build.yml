@@ -39,6 +39,34 @@ jobs:
         path: ./Sensor-SDK-Example
         repository: Evagan2018/Sensor-SDK-Example
         ref: cmsis-pack-6.4.0-test-20261013-083944
+    - name: Setup board layer
+      working-directory: ./Sensor-SDK-Example
+      run: |
+        sed -i "s|target-types:|&\n    - type: $TARGET_TYPE\n      device: $TARGET_DEVICE\n      variables:\n      - Board-Layer: $TARGET_LAYER\n      - Shield-Layer: $SHIELD_DIR/${{ matrix.solution.shield }}/Shield.clayer.yml|" $EXAMPLE_DIR/${{ matrix.solution.sensor }}/${{ matrix.solution.sensor }}.csolution.yml
+    - name: Cache packs
+      uses: actions/cache@v6
+      with:
+        key: cmsis-packs-${{ hashFiles('**/*.csolution.yml', '**/*.cproject.yml', '**/*.clayer.yml') }}
+        restore-keys: |
+          cmsis-packs-
+        path: /home/runner/.cache/arm/packs
+    - name: Prepare vcpkg env
+      uses: ARM-software/cmsis-actions/vcpkg@main
+      with:
+        config: ./Sensor-SDK-Example/.ci/vcpkg-configuration.json
+    - name: Initialize CMSIS pack root folder
+      run: |
+        cpackget init https://www.keil.com/pack/index.pidx
+        cpackget update-index
+    - name: Use local Sensor-SDK-Example pack
+      working-directory: ./Sensor-SDK-Example
+      run: |
+        cpackget rm NXP.ISSDK || true
+        cpackget add ./NXP.ISSDK.pdsc
+    - name: Activate Arm tool license
+      run: |
+        armlm activate --server https://mdk-preview.keil.arm.com --product KEMDK-COM0
+    - uses: ammaraskar/gcc-problem-matcher@master
     - name: Install CMSIS 6.4.0 qualification probe
       shell: bash
       working-directory: ${{ github.workspace }}
@@ -184,34 +212,6 @@ jobs:
 
         CMSIS_PROBE_EOF
         python3 "$RUNNER_TEMP/cmsis-pack-test/probe.py" --probe-install
-    - name: Setup board layer
-      working-directory: ./Sensor-SDK-Example
-      run: |
-        sed -i "s|target-types:|&\n    - type: $TARGET_TYPE\n      device: $TARGET_DEVICE\n      variables:\n      - Board-Layer: $TARGET_LAYER\n      - Shield-Layer: $SHIELD_DIR/${{ matrix.solution.shield }}/Shield.clayer.yml|" $EXAMPLE_DIR/${{ matrix.solution.sensor }}/${{ matrix.solution.sensor }}.csolution.yml
-    - name: Cache packs
-      uses: actions/cache@v6
-      with:
-        key: cmsis-packs-${{ hashFiles('**/*.csolution.yml', '**/*.cproject.yml', '**/*.clayer.yml') }}
-        restore-keys: |
-          cmsis-packs-
-        path: /home/runner/.cache/arm/packs
-    - name: Prepare vcpkg env
-      uses: ARM-software/cmsis-actions/vcpkg@main
-      with:
-        config: ./Sensor-SDK-Example/.ci/vcpkg-configuration.json
-    - name: Initialize CMSIS pack root folder
-      run: |
-        cpackget init https://www.keil.com/pack/index.pidx
-        cpackget update-index
-    - name: Use local Sensor-SDK-Example pack
-      working-directory: ./Sensor-SDK-Example
-      run: |
-        cpackget rm NXP.ISSDK || true
-        cpackget add ./NXP.ISSDK.pdsc
-    - name: Activate Arm tool license
-      run: |
-        armlm activate --server https://mdk-preview.keil.arm.com --product KEMDK-COM0
-    - uses: ammaraskar/gcc-problem-matcher@master
     - name: Build Sensor examples
       working-directory: ./Sensor-SDK-Example
       if: always()
